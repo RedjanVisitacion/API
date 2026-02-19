@@ -59,6 +59,10 @@ class _MyHomePageState extends State<MyHomePage> {
   List<dynamic> users = [];
   bool isLoading = true;
   String? error;
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _genderController = TextEditingController();
+  String? _editingUserId;
+  String? _editingUserSource;
 
   @override
   void initState() {
@@ -87,6 +91,107 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         error = 'Error: $e';
         isLoading = false;
+      });
+    }
+  }
+
+  void _showUserDialog({Map<String, dynamic>? user}) {
+    if (user != null) {
+      _nameController.text = user['name'] ?? '';
+      _genderController.text = user['gender'] ?? '';
+      _editingUserId = user['idno']?.toString() ?? user['_id']?.toString();
+      _editingUserSource = user.containsKey('idno') ? 'MySQL' : 'MongoDB';
+    } else {
+      _nameController.clear();
+      _genderController.clear();
+      _editingUserId = null;
+      _editingUserSource = null;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(user == null ? 'Add User' : 'Edit User'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _genderController,
+              decoration: const InputDecoration(labelText: 'Gender'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_nameController.text.isNotEmpty && _genderController.text.isNotEmpty) {
+                _saveUser();
+                Navigator.pop(context);
+              }
+            },
+            child: Text(user == null ? 'Add' : 'Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveUser() async {
+    try {
+      final userData = {
+        'name': _nameController.text,
+        'gender': _genderController.text,
+      };
+
+      if (_editingUserId != null) {
+        // Update existing user
+        final response = await http.put(
+          Uri.parse('http://127.0.0.1:8000/users/$_editingUserId'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(userData),
+        );
+      } else {
+        // Create new user
+        final response = await http.post(
+          Uri.parse('http://127.0.0.1:8000/users'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(userData),
+        );
+      }
+
+      fetchUsers(); // Refresh the list
+    } catch (e) {
+      setState(() {
+        error = 'Error saving user: $e';
+      });
+    }
+  }
+
+  Future<void> _deleteUser(String userId, String source) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('http://127.0.0.1:8000/users/$userId?source=$source'),
+      );
+
+      if (response.statusCode == 200) {
+        fetchUsers(); // Refresh the list
+      } else {
+        setState(() {
+          error = 'Failed to delete user';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        error = 'Error deleting user: $e';
       });
     }
   }
@@ -127,6 +232,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                             DataColumn(
                               label: Text('Gender', 
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            DataColumn(
+                              label: Text('Actions', 
                                 style: TextStyle(fontWeight: FontWeight.bold)),
                             ),
                           ],
@@ -174,16 +283,44 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ),
                                 ),
                                 DataCell(Text(userGender)),
+                                DataCell(
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, color: Colors.blue),
+                                        onPressed: () => _showUserDialog(user: user),
+                                        tooltip: 'Edit',
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                        onPressed: () => _deleteUser(userId, source),
+                                        tooltip: 'Delete',
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             );
                           }).toList(),
                         ),
                       ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: fetchUsers,
-        tooltip: 'Refresh',
-        child: const Icon(Icons.refresh),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () => _showUserDialog(),
+            tooltip: 'Add User',
+            backgroundColor: Colors.green,
+            child: const Icon(Icons.add),
+          ),
+          const SizedBox(width: 16),
+          FloatingActionButton(
+            onPressed: fetchUsers,
+            tooltip: 'Refresh',
+            child: const Icon(Icons.refresh),
+          ),
+        ],
       ),
     );
   }
