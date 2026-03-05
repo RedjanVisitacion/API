@@ -64,6 +64,21 @@ class _MyHomePageState extends State<MyHomePage> {
   String? _editingUserId;
   String? _editingUserSource;
 
+  String? _extractApiError(http.Response response) {
+    try {
+      final body = json.decode(response.body);
+      if (body is Map && body['detail'] != null) {
+        return body['detail'].toString();
+      }
+      if (body is Map && body['error'] != null) {
+        return body['error'].toString();
+      }
+      return response.body.isNotEmpty ? response.body : null;
+    } catch (_) {
+      return response.body.isNotEmpty ? response.body : null;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -155,10 +170,19 @@ class _MyHomePageState extends State<MyHomePage> {
       if (_editingUserId != null) {
         // Update existing user
         final response = await http.put(
-          Uri.parse('http://127.0.0.1:8000/users/$_editingUserId'),
+          Uri.parse(
+              'http://127.0.0.1:8000/users/$_editingUserId?source=${_editingUserSource ?? 'MySQL'}'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(userData),
         );
+
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          final msg = _extractApiError(response) ?? 'Failed to update user';
+          setState(() {
+            error = msg;
+          });
+          return;
+        }
       } else {
         // Create new user
         final response = await http.post(
@@ -166,6 +190,14 @@ class _MyHomePageState extends State<MyHomePage> {
           headers: {'Content-Type': 'application/json'},
           body: json.encode(userData),
         );
+
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          final msg = _extractApiError(response) ?? 'Failed to create user';
+          setState(() {
+            error = msg;
+          });
+          return;
+        }
       }
 
       fetchUsers(); // Refresh the list
@@ -185,8 +217,9 @@ class _MyHomePageState extends State<MyHomePage> {
       if (response.statusCode == 200) {
         fetchUsers(); // Refresh the list
       } else {
+        final msg = _extractApiError(response) ?? 'Failed to delete user';
         setState(() {
-          error = 'Failed to delete user';
+          error = msg;
         });
       }
     } catch (e) {
