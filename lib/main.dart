@@ -64,6 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _genderController = TextEditingController();
   String? _editingUserId;
   String? _editingUserSource;
+  String _selectedSource = 'MySQL';
 
   String? _extractApiError(http.Response response) {
     try {
@@ -117,11 +118,13 @@ class _MyHomePageState extends State<MyHomePage> {
       _genderController.text = user['gender'] ?? '';
       _editingUserId = user['idno']?.toString() ?? user['_id']?.toString();
       _editingUserSource = user.containsKey('idno') ? 'MySQL' : 'MongoDB';
+      _selectedSource = _editingUserSource ?? 'MySQL';
     } else {
       _nameController.clear();
       _genderController.clear();
       _editingUserId = null;
       _editingUserSource = null;
+      _selectedSource = 'MySQL';
     }
 
     showDialog(
@@ -131,14 +134,38 @@ class _MyHomePageState extends State<MyHomePage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            DropdownButtonFormField<String>(
+              value: _selectedSource,
+              decoration: const InputDecoration(labelText: 'Database'),
+              items: const [
+                DropdownMenuItem(value: 'MySQL', child: Text('MySQL')),
+                DropdownMenuItem(value: 'MongoDB', child: Text('MongoDB')),
+              ],
+              onChanged: user == null
+                  ? (value) {
+                      if (value == null) return;
+                      setState(() {
+                        _selectedSource = value;
+                      });
+                    }
+                  : null,
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Name'),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _genderController,
+            DropdownButtonFormField<String>(
+              value: (_genderController.text.isNotEmpty ? _genderController.text : null),
               decoration: const InputDecoration(labelText: 'Gender'),
+              items: const [
+                DropdownMenuItem(value: 'Male', child: Text('Male')),
+                DropdownMenuItem(value: 'Female', child: Text('Female')),
+              ],
+              onChanged: (value) {
+                _genderController.text = value ?? '';
+              },
             ),
           ],
         ),
@@ -186,6 +213,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       } else {
         // Create new user
+        userData['source'] = _selectedSource;
         final response = await http.post(
           Uri.parse('http://127.0.0.1:8000/users'),
           headers: {'Content-Type': 'application/json'},
