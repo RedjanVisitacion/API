@@ -13,6 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
         // This is the theme of your application.
@@ -231,112 +232,324 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    const fabSpace = 92.0;
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text('Student Users'),
-      ),
-      body: Center(
-        child: isLoading
-            ? const CircularProgressIndicator()
-            : error != null
-                ? Text(
-                    error!,
-                    style: const TextStyle(color: Colors.red, fontSize: 16),
-                    textAlign: TextAlign.center,
-                  )
-                : users.isEmpty
-                    ? const Text('No users found')
-                    : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columns: const [
-                            DataColumn(
-                              label: Text('Source', 
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                            DataColumn(
-                              label: Text('ID', 
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                            DataColumn(
-                              label: Text('Name', 
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                            DataColumn(
-                              label: Text('Gender', 
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                            DataColumn(
-                              label: Text('Actions', 
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                          rows: users.asMap().entries.map((entry) {
-                            final user = entry.value;
-                            final source = user.containsKey('idno') ? 'MySQL' : 'MongoDB';
-                            final userId = user['idno']?.toString() ?? user['_id']?.toString() ?? 'No ID';
-                            final userName = user['name']?.toString() ?? 'No name';
-                            final userGender = user['gender']?.toString() ?? 'No gender';
-                            
-                            return DataRow(
-                              color: MaterialStateProperty.all(
-                                source == 'MySQL' 
-                                  ? Colors.blue.withOpacity(0.1)
-                                  : Colors.green.withOpacity(0.1)
-                              ),
-                              cells: [
-                                DataCell(
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: source == 'MySQL' 
-                                        ? Colors.blue
-                                        : Colors.green,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
+      backgroundColor: const Color(0xFFF5F6FA),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF6D5DF6), Color(0xFFB85CFF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(22),
+                  bottomRight: Radius.circular(22),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Student Users',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Manage users from MySQL and MongoDB',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Card(
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    side: BorderSide(color: Colors.black.withOpacity(0.06)),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + fabSpace + bottomInset),
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : error != null
+                            ? Center(
+                                child: Text(
+                                  error!,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              )
+                            : users.isEmpty
+                                ? const Center(
                                     child: Text(
-                                      source,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                      'No users found',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
+                                  )
+                                : LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final isNarrow = constraints.maxWidth < 560;
+
+                                      if (isNarrow) {
+                                        return ListView.separated(
+                                          itemCount: users.length,
+                                          separatorBuilder: (_, __) =>
+                                              const SizedBox(height: 10),
+                                          itemBuilder: (context, index) {
+                                            final user = users[index];
+                                            final source = user.containsKey('idno')
+                                                ? 'MySQL'
+                                                : 'MongoDB';
+                                            final userId = user['idno']?.toString() ??
+                                                user['_id']?.toString() ??
+                                                'No ID';
+                                            final userName =
+                                                user['name']?.toString() ?? 'No name';
+                                            final userGender =
+                                                user['gender']?.toString() ?? 'No gender';
+
+                                            final badgeColor = source == 'MySQL'
+                                                ? const Color(0xFF2F6BFF)
+                                                : const Color(0xFF18A957);
+                                            final cardTint = source == 'MySQL'
+                                                ? const Color(0xFFEFF4FF)
+                                                : const Color(0xFFEEFFF3);
+
+                                            return Container(
+                                              decoration: BoxDecoration(
+                                                color: cardTint,
+                                                borderRadius: BorderRadius.circular(16),
+                                                border: Border.all(
+                                                  color: Colors.black.withOpacity(0.06),
+                                                ),
+                                              ),
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(12),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(
+                                                              horizontal: 10, vertical: 6),
+                                                          decoration: BoxDecoration(
+                                                            color: badgeColor,
+                                                            borderRadius:
+                                                                BorderRadius.circular(999),
+                                                          ),
+                                                          child: Text(
+                                                            source,
+                                                            style: const TextStyle(
+                                                              color: Colors.white,
+                                                              fontSize: 12,
+                                                              fontWeight: FontWeight.w800,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const Spacer(),
+                                                        IconButton(
+                                                          onPressed: () =>
+                                                              _showUserDialog(user: user),
+                                                          icon: Icon(Icons.edit,
+                                                              color: scheme.primary),
+                                                          tooltip: 'Edit',
+                                                        ),
+                                                        IconButton(
+                                                          onPressed: () =>
+                                                              _deleteUser(userId, source),
+                                                          icon: const Icon(Icons.delete,
+                                                              color: Colors.red),
+                                                          tooltip: 'Delete',
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    Text(
+                                                      userName,
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w800,
+                                                        color: Color(0xFF2D2A3A),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Text(
+                                                            'ID: $userId',
+                                                            overflow: TextOverflow.ellipsis,
+                                                            style: TextStyle(
+                                                              fontSize: 13,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: Colors.black
+                                                                  .withOpacity(0.65),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(width: 12),
+                                                        Text(
+                                                          'Gender: $userGender',
+                                                          overflow: TextOverflow.ellipsis,
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            fontWeight: FontWeight.w600,
+                                                            color: Colors.black
+                                                                .withOpacity(0.65),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      }
+
+                                      return SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Padding(
+                                          padding: EdgeInsets.only(
+                                            bottom: 12 + fabSpace + bottomInset,
+                                          ),
+                                          child: DataTable(
+                                            headingRowColor: MaterialStateProperty.all(
+                                              const Color(0xFFF6F2FF),
+                                            ),
+                                            headingTextStyle: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF2D2A3A),
+                                            ),
+                                            columns: const [
+                                              DataColumn(label: Text('Source')),
+                                              DataColumn(label: Text('ID')),
+                                              DataColumn(label: Text('Name')),
+                                              DataColumn(label: Text('Gender')),
+                                              DataColumn(label: Text('Actions')),
+                                            ],
+                                            rows: users.asMap().entries.map((entry) {
+                                              final user = entry.value;
+                                              final source = user.containsKey('idno')
+                                                  ? 'MySQL'
+                                                  : 'MongoDB';
+                                              final userId = user['idno']?.toString() ??
+                                                  user['_id']?.toString() ??
+                                                  'No ID';
+                                              final userName =
+                                                  user['name']?.toString() ?? 'No name';
+                                              final userGender =
+                                                  user['gender']?.toString() ?? 'No gender';
+
+                                              final rowColor = source == 'MySQL'
+                                                  ? const Color(0xFFEFF4FF)
+                                                  : const Color(0xFFEEFFF3);
+                                              final badgeColor = source == 'MySQL'
+                                                  ? const Color(0xFF2F6BFF)
+                                                  : const Color(0xFF18A957);
+
+                                              return DataRow(
+                                                color: MaterialStateProperty.all(rowColor),
+                                                cells: [
+                                                  DataCell(
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 6,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: badgeColor,
+                                                        borderRadius: BorderRadius.circular(999),
+                                                      ),
+                                                      child: Text(
+                                                        source,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 12,
+                                                          fontWeight: FontWeight.w800,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  DataCell(Text(userId)),
+                                                  DataCell(
+                                                    Text(
+                                                      userName,
+                                                      style: const TextStyle(
+                                                        fontWeight: FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  DataCell(Text(userGender)),
+                                                  DataCell(
+                                                    Row(
+                                                      children: [
+                                                        IconButton(
+                                                          icon: Icon(
+                                                            Icons.edit,
+                                                            color: scheme.primary,
+                                                          ),
+                                                          onPressed: () =>
+                                                              _showUserDialog(user: user),
+                                                          tooltip: 'Edit',
+                                                        ),
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                            Icons.delete,
+                                                            color: Colors.red,
+                                                          ),
+                                                          onPressed: () =>
+                                                              _deleteUser(userId, source),
+                                                          tooltip: 'Delete',
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
-                                ),
-                                DataCell(Text(userId)),
-                                DataCell(
-                                  Text(
-                                    userName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                                DataCell(Text(userGender)),
-                                DataCell(
-                                  Row(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit, color: Colors.blue),
-                                        onPressed: () => _showUserDialog(user: user),
-                                        tooltip: 'Edit',
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red),
-                                        onPressed: () => _deleteUser(userId, source),
-                                        tooltip: 'Delete',
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            );
-                          }).toList(),
-                        ),
-                      ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -344,14 +557,15 @@ class _MyHomePageState extends State<MyHomePage> {
           FloatingActionButton(
             onPressed: () => _showUserDialog(),
             tooltip: 'Add User',
-            backgroundColor: Colors.green,
-            child: const Icon(Icons.add),
+            backgroundColor: const Color(0xFF18A957),
+            child: const Icon(Icons.add, color: Colors.white),
           ),
           const SizedBox(width: 16),
           FloatingActionButton(
             onPressed: fetchUsers,
             tooltip: 'Refresh',
-            child: const Icon(Icons.refresh),
+            backgroundColor: const Color(0xFF6D5DF6),
+            child: const Icon(Icons.refresh, color: Colors.white),
           ),
         ],
       ),
